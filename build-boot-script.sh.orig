@@ -1,0 +1,55 @@
+#!/bin/bash
+set -xe
+
+linux_dir="${PWD}/linux"
+ci_scripts_dir="${PWD}/ci-scripts"
+
+if [ ! -d ${ci_scripts_dir} ] || [ -z $(ls -A ${ci_scripts_dir}) ]; then
+    git clone --depth=1 https://github.com/linuxppc/ci-scripts.git ${ci_scripts_dir}
+fi
+
+build_dir="$ci_scripts_dir/build"
+kernel_output_dir="${build_dir}/output/latest-kernel"
+defconfig="ppc64le_guest_defconfig"
+
+
+# this is the toolchain used to build the kernel
+build_make_cmd="make kernel@ppc64le@fedora SRC=${linux_dir} JFACTOR=$(nproc) DEFCONFIG=${defconfig}"
+
+# boot into ubuntu 20.04 by default
+image_name="${2:-ubuntu20.04-cloudimg-ppc64el.qcow2}"
+disk_make_dir="$ci_scripts_dir/root-disks"
+disk_make_cmd="make $image_name"
+shift 2
+
+boot_script_dir=$ci_scripts_dir/scripts/boot
+# TODO: 3rd argument should be the FS, and 4th argument should be the config yaml file, ENFORCE IT
+boot_script="${boot_script_dir}/qemu-pseries --accel kvm --cpu POWER8 --cloud-image ${image_name} --test-name avocado --test-args $* --pexpect-timeout 0"
+
+if [[ ! -d 'linux' ]]; then
+    # clone mainline by default
+    git clone --depth=1 ${1:-https://web.git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git} linux
+fi
+
+# build phase
+pushd $build_dir
+$build_make_cmd 
+popd
+
+# root disk download
+pushd $disk_make_dir
+#./install-deps.sh
+make cloud-init-user-data.img
+$disk_make_cmd
+popd
+
+# boot qemu
+KBUILD_OUTPUT=${kernel_output_dir} ${boot_script}
+
+# cleanup so no misconfiguration happens over time (will take more time each time the script is run)
+#rm -rf ${linux_dir}
+#rm -rf ${ci_scripts_dir}/build/output/*
+
+# process test data
+
+
