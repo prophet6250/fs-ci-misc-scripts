@@ -14,8 +14,9 @@ if [ "$#" -ne 3 ]; then
     exit 1
 fi
 
+root_dir="/home/ci-user"
 linux_dir="${PWD}/linux"
-ci_scripts_dir="${PWD}/ci-scripts"
+ci_scripts_dir="$root_dir/ci-scripts"
 
 if [ ! -d ${ci_scripts_dir} ] || [ -z "$(ls -A ${ci_scripts_dir})" ]; then
     git clone --depth=1 https://github.com/OjaswinM/ci-scripts.git ${ci_scripts_dir}
@@ -34,19 +35,19 @@ image_name="${2:-ubuntu20.04-cloudimg-ppc64el.qcow2}"
 disk_make_dir="$ci_scripts_dir/root-disks"
 disk_make_cmd="make $image_name"
 
-if [[ ! -d 'linux' ]]; then
+if [[ ! -d $linux_dir ]]; then
     # clone mainline by default
     git clone --depth=1 ${1:-https://web.git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git} linux
 fi
 
 # build phase
 pushd $build_dir
-$build_make_cmd 
+$build_make_cmd
 popd
 
 # root disk download
 pushd $disk_make_dir
-#./install-deps.sh
+./install-deps.sh
 make cloud-init-user-data.img
 $disk_make_cmd
 popd
@@ -63,6 +64,7 @@ boot_script="${boot_script_dir}/qemu-pseries --accel kvm --cpu POWER8 --cloud-im
 # boot qemu
 KBUILD_OUTPUT=${kernel_output_dir} ${boot_script}
 echo Output $?
+
 # # cleanup so no misconfiguration happens over time (will take more time each time the script is run)
 # #rm -rf ${linux_dir}
 # #rm -rf ${ci_scripts_dir}/build/output/*
@@ -72,7 +74,7 @@ echo Output $?
 # test_output_dir="/tmp/output-test"
 
 # convert logs to format of dashboard
-xfstests_scripts_dir="./fs-ci-misc-scripts/xfstests-scripts"
+xfstests_scripts_dir="$root_dir/fs-ci-misc-scripts/xfstests-scripts"
 avocado_convert_script="$xfstests_scripts_dir/convert.py"
 xml_path="$test_output_dir/results/result.xml"
 xfstests_results_path="$test_output_dir/results/."
@@ -85,7 +87,7 @@ config="${3##*:}" # everything after :
 testtype="avocado-xfstest-$fs"
 subtype="${config//./-}" # replace . with -
 
-python3 $avocado_convert_script $xml_path $xfstests_results_path $logs_op_path $log_prefix --output_json $json_op_path --type $testtype --subtype $subtype | tee $test_output_dir/.convert.log
+python3 $xfstests_scripts_dir/convert.py $xml_path $xfstests_results_path $logs_op_path $log_prefix --output_json $json_op_path --type $testtype --subtype $subtype | tee $test_output_dir/.convert.log
 run_id=$(cat $test_output_dir/.convert.log | tail -n 1 |  awk '{print $3}')
 
 $xfstests_scripts_dir/push_logs.sh $run_id $logs_op_path $json_op_path
