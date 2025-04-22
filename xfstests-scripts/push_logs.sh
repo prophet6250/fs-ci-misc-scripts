@@ -52,7 +52,10 @@ upload_results() {
 
     if [[ "$status" -ge 200 && "$status" -lt 300 ]]; then
         echo "Success: Server responded with status $status"
-        echo "$body"
+        # echo "$body"
+	path=$(echo "$body" | jq -r '.url')
+	run_url="http://$remote_host:3000/$path"
+	echo "Dashboard URL of run: $run_url"
     else
         echo "Error: Server responded with status $status"
         echo "$body" >&2
@@ -64,7 +67,4 @@ upload_results() {
 push_logs_to_server "$1" "$2"
 
 # finally upload the results to the dashboard db
-response=$(curl -s -w "\n%{http_code}" -X POST "$url" \
-        -H "Content-Type: application/json" \
-        -d @"$json_file")
 upload_results "$3"

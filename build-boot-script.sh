@@ -46,7 +46,7 @@ popd
 
 # root disk download
 pushd $disk_make_dir
-./install-deps.sh
+#./install-deps.sh
 make cloud-init-user-data.img
 $disk_make_cmd
 popd
@@ -62,17 +62,18 @@ boot_script="${boot_script_dir}/qemu-pseries --accel kvm --cpu POWER8 --cloud-im
 
 # boot qemu
 KBUILD_OUTPUT=${kernel_output_dir} ${boot_script}
-# 
+echo Output $?
 # # cleanup so no misconfiguration happens over time (will take more time each time the script is run)
 # #rm -rf ${linux_dir}
 # #rm -rf ${ci_scripts_dir}/build/output/*
 
 # Only for debug, dont uncomment otherwise
 # test_output_dir="/tmp/output-ff7c21ad2676"
-# test_output_dir="/tmp/output-d7bf894d9b2c"
+# test_output_dir="/tmp/output-test"
 
 # convert logs to format of dashboard
-avocado_convert_script="scripts/convert.py"
+xfstests_scripts_dir="./fs-ci-misc-scripts/xfstests-scripts"
+avocado_convert_script="$xfstests_scripts_dir/convert.py"
 xml_path="$test_output_dir/results/result.xml"
 xfstests_results_path="$test_output_dir/results/."
 logs_op_path="$test_output_dir/output-logs/."
@@ -87,5 +88,4 @@ subtype="${config//./-}" # replace . with -
 python3 $avocado_convert_script $xml_path $xfstests_results_path $logs_op_path $log_prefix --output_json $json_op_path --type $testtype --subtype $subtype | tee $test_output_dir/.convert.log
 run_id=$(cat $test_output_dir/.convert.log | tail -n 1 |  awk '{print $3}')
 
-./scripts/push_logs.sh $run_id $logs_op_path $json_op_path
-
+$xfstests_scripts_dir/push_logs.sh $run_id $logs_op_path $json_op_path
