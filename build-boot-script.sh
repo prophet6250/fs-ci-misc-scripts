@@ -4,6 +4,16 @@ set -o pipefail
 
 echo "Test args: $0 $*"
 
+if [ "$#" -ne 3 ]; then
+    echo "Usage: $0 <linux_git_url> <qcow2_image> <fs_type:avacado_xfstests_config_file>"
+    echo
+    echo "Example:"
+    echo "  $0 https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git \\"
+    echo "     ubuntu20.04-cloudimg-ppc64el.qcow2 \\"
+    echo "     ext4:ci.yaml"
+    exit 1
+fi
+
 linux_dir="${PWD}/linux"
 ci_scripts_dir="${PWD}/ci-scripts"
 
@@ -36,7 +46,7 @@ popd
 
 # root disk download
 pushd $disk_make_dir
-#./install-deps.sh
+./install-deps.sh
 make cloud-init-user-data.img
 $disk_make_cmd
 popd
