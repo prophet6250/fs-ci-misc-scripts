@@ -2,7 +2,8 @@
 set -xe
 
 # This gives remote_host, remote_pass and remote_user
-source ./hostdetails
+source "$(dirname "$0")/hostdetails"
+
 
 push_logs_to_server() {
     local run_id=$1
