@@ -59,7 +59,7 @@ test_output_dir="/tmp/output-$uuid"
 mkdir -p $test_output_dir
 
 # 3rd argument is of form "fs:config, this is because handling spaces was becoming an issue"
-boot_script="${boot_script_dir}/qemu-pseries --accel kvm --cpu POWER8 --cloud-image ${image_name} --test-name avocado --pexpect-timeout 0 --test-output-dir $test_output_dir --test-args $3"
+boot_script="${boot_script_dir}/qemu-pseries --accel kvm --cpu POWER8 --cloud-image ${image_name} --test-name avocado --pexpect-timeout 0 --test-output-dir $test_output_dir --test-args $4 --mem-size 8G"
 
 # boot qemu
 KBUILD_OUTPUT=${kernel_output_dir} ${boot_script}
